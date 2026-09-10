@@ -28,6 +28,7 @@ On macOS, run `npm run sync` and build the `App` workspace in Xcode. Alternative
 - `npm run build` checks TypeScript and produces the web bundle.
 - Live checks on 2026-09-10: MP4 downloads through the user's Tailscale server succeeded (788,493 bytes each). A YouTube download with the updated extractor succeeded in the isolated test process (5,571,481 bytes, H.264 + AAC).
 - Browser checks: server connection, video analysis, quality selection, download completion, persisted history, full 10-second playback, and removing the generated test history entry.
+- Native iOS build: [GitHub Actions run 34430961310](https://github.com/janszala619-create/Video-downloader-ios/actions/runs/34430961310) succeeded, including frontend tests, CocoaPods, Capacitor synchronization and the unsigned IPA build. The workflow input preconfigures the user's Tailscale server. The IPA was downloaded locally to `C:\Users\jansz\Downloads\VidSave-repaired-20260910\VidSave-2\VidSave.ipa`.
 
 ## Limitations
 
