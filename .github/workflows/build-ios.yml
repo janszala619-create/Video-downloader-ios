@@ -14,8 +14,10 @@ on:
     branches:
       - main
       - master
+      - 'fix/**'
     paths:
       - 'frontend/**'
+      - '.github/workflows/build-ios.yml'
 
 jobs:
   build-ios:
