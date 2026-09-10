@@ -23,11 +23,11 @@ On macOS, run `npm run sync` and build the `App` workspace in Xcode. Alternative
 
 ## Verification
 
-- Backend: `python -m unittest discover -s tests -v` from `backend`. Includes real yt-dlp downloads of an HTTP-served generated MP4, explicit/automatic formats with and without FFmpeg, byte equality, audio/video verification with ffprobe, and temporary-file cleanup.
-- Frontend: `npm test` covers server communication, file transfer, errors, history timing, duplicate download prevention, native filesystem calls, and player controls. Native APIs are mocked.
+- Backend: 26 passing tests via `python -m unittest discover -s tests -v` from `backend`. Includes real yt-dlp downloads of an HTTP-served generated MP4, explicit/automatic formats with and without FFmpeg, byte equality, audio/video verification with ffprobe, and temporary-file cleanup.
+- Frontend: 17 passing tests via `npm test` cover server communication, file transfer, errors, history timing, duplicate download prevention, native filesystem calls, and player controls. Native APIs are mocked.
 - `npm run build` checks TypeScript and produces the web bundle.
 - Live checks on 2026-09-10: MP4 downloads through the user's Tailscale server succeeded (788,493 bytes each). A YouTube download with the updated extractor succeeded in the isolated test process (5,571,481 bytes, H.264 + AAC).
-- Browser checks: server connection, video analysis, quality selection, download completion and persisted history.
+- Browser checks: server connection, video analysis, quality selection, download completion, persisted history, full 10-second playback, and removing the generated test history entry.
 
 ## Limitations
 
