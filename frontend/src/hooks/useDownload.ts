@@ -1,5 +1,5 @@
-import { useState, useCallback } from 'react'
-import { buildDownloadUrl } from '../services/api'
+import { useState, useCallback, useRef } from 'react'
+import { saveVideo } from '../services/download'
 import type { Format, VideoInfo, HistoryItem } from '../types'
 
 type DownloadState = 'idle' | 'downloading' | 'done' | 'error'
@@ -7,27 +7,27 @@ type DownloadState = 'idle' | 'downloading' | 'done' | 'error'
 export function useDownload(onComplete: (item: HistoryItem) => void) {
   const [state, setState] = useState<DownloadState>('idle')
   const [error, setError] = useState<string | null>(null)
+  const active = useRef(false)
 
   const download = useCallback(
     async (info: VideoInfo, format: Format, originalUrl: string) => {
+      if (active.current) return
+      active.current = true
       setState('downloading')
       setError(null)
       try {
-        const a = document.createElement('a')
-        a.href = buildDownloadUrl(originalUrl, format.format_id)
-        a.download = `${info.title}.${format.ext}`
-        document.body.appendChild(a)
-        a.click()
-        document.body.removeChild(a)
+        const id = crypto.randomUUID()
+        const title = info.title.replace(/[<>:"/\\|?*\u0000-\u001f]/g, '_').slice(0, 100) || 'video'
+        const saved = await saveVideo(originalUrl, format.format_id, `${title}-${id}.${format.ext}`)
 
         const historyItem: HistoryItem = {
-          id: crypto.randomUUID(),
+          id,
           title: info.title,
           thumbnail: info.thumbnail,
           quality: format.quality,
           format: format.ext,
           format_id: format.format_id,
-          fileSize: format.filesize ?? 0,
+          ...saved,
           downloadDate: new Date().toISOString(),
           originalUrl,
         }
@@ -36,12 +36,15 @@ export function useDownload(onComplete: (item: HistoryItem) => void) {
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Download failed')
         setState('error')
+      } finally {
+        active.current = false
       }
     },
     [onComplete],
   )
 
   const reset = useCallback(() => {
+    if (active.current) return
     setState('idle')
     setError(null)
   }, [])

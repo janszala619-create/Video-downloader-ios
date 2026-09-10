@@ -13,7 +13,7 @@ export function HistoryPage({ items, onDelete, onClear }: HistoryPageProps) {
 
   const handlePlay = (item: HistoryItem) => {
     navigate(
-      `/player?url=${encodeURIComponent(item.originalUrl)}&format_id=${encodeURIComponent(item.format_id)}&title=${encodeURIComponent(item.title)}`,
+      `/player?url=${encodeURIComponent(item.originalUrl)}&format_id=${encodeURIComponent(item.format_id)}&title=${encodeURIComponent(item.title)}${item.localPath ? `&local=${encodeURIComponent(item.localPath)}` : ''}`,
     )
   }
 

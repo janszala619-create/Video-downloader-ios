@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { VideoPlayer } from '../components/VideoPlayer'
 import { fetchStreamUrl } from '../services/api'
+import { localVideoUrl } from '../services/download'
 
 export function PlayerPage() {
   const [searchParams] = useSearchParams()
@@ -10,12 +11,16 @@ export function PlayerPage() {
   const originalUrl = searchParams.get('url') ?? ''
   const format_id = searchParams.get('format_id') ?? ''
   const title = searchParams.get('title') ?? ''
+  const localPath = searchParams.get('local') ?? ''
 
   const [streamUrl, setStreamUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    setLoading(true)
+    setError(null)
+    setStreamUrl(null)
     if (!originalUrl || !format_id) {
       setError('Missing video parameters')
       setLoading(false)
@@ -24,7 +29,8 @@ export function PlayerPage() {
 
     let cancelled = false
 
-    fetchStreamUrl(originalUrl, format_id)
+    const videoUrl = localPath ? localVideoUrl(localPath) : fetchStreamUrl(originalUrl, format_id)
+    videoUrl
       .then(url => {
         if (!cancelled) {
           setStreamUrl(url)
@@ -41,7 +47,7 @@ export function PlayerPage() {
     return () => {
       cancelled = true
     }
-  }, [originalUrl, format_id])
+  }, [originalUrl, format_id, localPath])
 
   const handleClose = () => navigate(-1)
 
@@ -51,6 +57,7 @@ export function PlayerPage() {
       <div className="flex items-center gap-3 px-4 pt-safe pt-4 pb-2 bg-black">
         <button
           onClick={handleClose}
+          aria-label="Back"
           className="p-2 rounded-full bg-white/[0.08] text-white hover:bg-white/[0.12] transition-colors"
         >
           <svg

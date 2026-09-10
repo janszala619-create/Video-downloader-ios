@@ -27,6 +27,7 @@ export function DownloadItem({ item, onPlay, onDelete }: DownloadItemProps) {
       {/* Thumbnail */}
       <button
         onClick={() => onPlay(item)}
+        aria-label={`Play ${item.title}`}
         className="shrink-0 relative w-20 h-14 rounded-lg overflow-hidden bg-white/[0.05] group"
       >
         {item.thumbnail ? (

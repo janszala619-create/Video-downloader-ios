@@ -45,7 +45,9 @@ jobs:
         working-directory: frontend
         env:
           VITE_API_BASE_URL: ${{ inputs.api_url || secrets.VITE_API_BASE_URL }}
-        run: npm run build
+        run: |
+          npm test
+          npm run build
 
       # ── 4. CocoaPods ─────────────────────────────────────────────────────
       - name: CocoaPods installieren
@@ -58,7 +60,7 @@ jobs:
       # ── 5. Capacitor synchronisieren ─────────────────────────────────────
       - name: Capacitor sync
         working-directory: frontend
-        run: npx cap sync ios --no-open
+        run: npx cap sync ios
 
       # ── 6. Xcode-Build (unsigned — kein Developer Account nötig) ─────────
       #   Die IPA kann mit AltStore oder Sideloadly auf das iPhone geladen werden

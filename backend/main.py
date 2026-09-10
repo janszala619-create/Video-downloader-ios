@@ -23,8 +23,16 @@ LOG_DIR = Path(os.getenv("VIDSAVE_LOG_DIR", "logs"))
 COOKIES_FILE = Path(os.getenv("VIDSAVE_COOKIES_FILE", "cookies.txt"))
 FFMPEG_LOCATION = os.getenv("VIDSAVE_FFMPEG_LOCATION")
 YTDLP_DEBUG = os.getenv("VIDSAVE_YTDLP_DEBUG", "").strip().lower() in {"1", "true", "yes"}
-FFMPEG_PATH = shutil.which("ffmpeg") or (FFMPEG_LOCATION if FFMPEG_LOCATION and Path(FFMPEG_LOCATION).exists() else None)
-FFPROBE_PATH = shutil.which("ffprobe")
+def _find_media_tool(name: str) -> str | None:
+    if FFMPEG_LOCATION:
+        location = Path(FFMPEG_LOCATION)
+        directory = location if location.is_dir() else location.parent
+        return shutil.which(name, path=str(directory))
+    return shutil.which(name)
+
+
+FFMPEG_PATH = _find_media_tool("ffmpeg")
+FFPROBE_PATH = _find_media_tool("ffprobe")
 VIDEO_EXTENSIONS = {".mp4", ".m4v", ".mov", ".webm", ".mkv"}
 AUDIO_EXTENSIONS = {".m4a", ".mp3", ".aac", ".opus", ".ogg", ".weba", ".wav"}
 
@@ -160,6 +168,9 @@ def _normalize_url(url: str) -> str:
         raise ValueError("URL is required")
     if not urlparse(normalized).scheme:
         normalized = f"https://{normalized}"
+    parts = urlsplit(normalized)
+    if parts.scheme not in {"http", "https"} or not parts.hostname or parts.username or parts.password:
+        raise ValueError("Unsupported URL: enter an HTTP or HTTPS video link")
     return normalized
 
 
@@ -212,7 +223,8 @@ def _ydl_base_opts(url: str) -> dict:
         "no_warnings": not YTDLP_DEBUG,
         "logger": _YtdlpLogger(),
         "http_headers": _http_headers(url),
-        "extractor_args": {"youtube": {"player_client": ["ios", "android", "web"]}},
+        "noplaylist": True,
+        "js_runtimes": {"deno": {}, "node": {}},
         "socket_timeout": 30,
         "retries": 5,
         "fragment_retries": 5,
@@ -228,15 +240,20 @@ def _ydl_base_opts(url: str) -> dict:
 
 def _download_format_selector(format_id: str) -> str:
     if format_id == "auto":
+        if not FFMPEG_PATH:
+            return "best[ext=mp4]/best"
         return "/".join([
             "bestvideo[vcodec^=avc1][ext=mp4]+bestaudio[acodec^=mp4a][ext=m4a]",
             "bestvideo[vcodec^=avc1]+bestaudio[acodec^=mp4a]",
             "best[vcodec^=avc1][acodec^=mp4a][ext=mp4]",
             "best[vcodec!=none][acodec!=none][ext=mp4]",
+            "bestvideo+bestaudio/best",
         ])
     if "+" in format_id or "/" in format_id:
         return format_id
-    return f"{format_id}+bestaudio/{format_id}/best"
+    if not FFMPEG_PATH:
+        return f"{format_id}[acodec!=?none]"
+    return f"{format_id}[acodec!=?none]/{format_id}+bestaudio[ext=m4a]/{format_id}+bestaudio/{format_id}"
 
 
 def _has_video_track(path: Path) -> bool:
@@ -279,8 +296,15 @@ def _extract_info(url: str) -> dict:
 def _normalize_formats(formats: list) -> list:
     seen: set[str] = set()
     result = []
-    for f in reversed(formats):
-        if f.get("vcodec") == "none":
+    preferred = sorted(formats, key=lambda f: (
+        f.get("height") or 0,
+        str(f.get("vcodec", "")).startswith(("avc1", "h264")) and f.get("ext") == "mp4",
+        f.get("acodec") not in {None, "none"},
+    ), reverse=True)
+    for f in preferred:
+        if f.get("vcodec") == "none" or f.get("has_drm"):
+            continue
+        if f.get("acodec") == "none" and not FFMPEG_PATH:
             continue
         if not f.get("url"):
             continue
@@ -296,7 +320,7 @@ def _normalize_formats(formats: list) -> list:
             "id": format_id,
             "quality": label,
             "label": label,
-            "ext": f.get("ext", "mp4"),
+            "ext": "mp4" if f.get("acodec") == "none" else f.get("ext", "mp4"),
             "filesize": f.get("filesize") or f.get("filesize_approx"),
             "fileSize": f.get("filesize") or f.get("filesize_approx"),
         })
@@ -305,7 +329,12 @@ def _normalize_formats(formats: list) -> list:
 
 def _download_file(url: str, ydl_opts: dict) -> None:
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        ydl.download([url])
+        info = ydl.extract_info(url, download=False)
+        if not info or info.get("_type") in {"playlist", "multi_video"}:
+            raise NoFormatsFoundError("Please use a link to a single video")
+        if info.get("requested_formats") and not FFMPEG_PATH:
+            raise RuntimeError("ffmpeg is not installed, cannot merge requested formats")
+        ydl.process_ie_result(info, download=True)
 
 
 async def _file_iterator(path: Path, chunk_size: int = 65536):
@@ -485,9 +514,6 @@ async def download_video(
             selector,
         )
 
-        if "+" in selector and not FFMPEG_PATH:
-            raise RuntimeError("ffmpeg is not installed, cannot merge requested formats")
-
         out_template = str(TMP_DIR / f"{file_id}.%(ext)s")
         ydl_opts = {
             **_ydl_base_opts(normalized_url),
@@ -503,7 +529,10 @@ async def download_video(
         if not matches:
             raise RuntimeError("yt-dlp produced no output file")
 
-        video_matches = [path for path in matches if _has_video_track(path)]
+        video_matches = []
+        for path in matches:
+            if await asyncio.to_thread(_has_video_track, path):
+                video_matches.append(path)
         if not video_matches:
             for path in matches:
                 path.unlink(missing_ok=True)
@@ -524,7 +553,8 @@ async def download_video(
     safe_title = file_id
     filename = f"vidsave_{safe_title}.{ext}"
 
-    background_tasks.add_task(filepath.unlink, missing_ok=True)
+    for path in matches:
+        background_tasks.add_task(path.unlink, missing_ok=True)
     server_log.info(
         "download_ok request_id=%s url=%s format_id=%s file=%s size=%s",
         request_id,
@@ -554,15 +584,24 @@ async def get_stream_url(req: StreamRequest):
     except Exception as e:
         return _error_response(request_id, "stream", req.url, e)
 
-    for f in info.get("formats", []):
-        if f["format_id"] == req.format_id:
-            stream_url = f.get("url")
-            if stream_url:
-                return {"stream_url": stream_url}
+    formats = info.get("formats", [])
+    selected = next((f for f in formats if f.get("format_id") == req.format_id), None)
+    if selected:
+        if selected.get("url") and selected.get("acodec") != "none" and selected.get("vcodec") != "none":
+            return {"stream_url": selected["url"]}
+        # A direct video-only URL cannot play the separately downloaded audio.
+        combined = [f for f in formats if f.get("url") and f.get("acodec") not in {None, "none"}
+                    and f.get("vcodec") not in {None, "none"}
+                    and (f.get("height") or 0) <= (selected.get("height") or 0)]
+        if combined:
+            playable = max(combined, key=lambda f: (f.get("height") or 0,
+                str(f.get("vcodec", "")).startswith(("avc1", "h264"))))
+            return {"stream_url": playable["url"]}
 
     raise HTTPException(status_code=404, detail="Format not found or no direct URL available")
 
 
+@app.get("/api/health")
 @app.get("/health")
 async def health():
     return {

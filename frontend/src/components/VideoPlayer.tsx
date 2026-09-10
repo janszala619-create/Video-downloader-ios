@@ -29,6 +29,7 @@ export function VideoPlayer({ src, title, onClose }: VideoPlayerProps) {
   const [speed, setSpeed] = useState(1)
   const [showControls, setShowControls] = useState(true)
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [playbackError, setPlaybackError] = useState<string | null>(null)
 
   const resetHideTimer = useCallback(() => {
     setShowControls(true)
@@ -78,12 +79,17 @@ export function VideoPlayer({ src, title, onClose }: VideoPlayerProps) {
     }
   }, [])
 
-  const togglePlay = () => {
+  const togglePlay = async () => {
     const vid = videoRef.current
     if (!vid) return
     if (vid.paused) {
-      vid.play()
-      resetHideTimer()
+      try {
+        await vid.play()
+        setPlaybackError(null)
+        resetHideTimer()
+      } catch {
+        setPlaybackError('Cannot play this video. The file may be unavailable or its format unsupported.')
+      }
     } else {
       vid.pause()
     }
@@ -103,6 +109,7 @@ export function VideoPlayer({ src, title, onClose }: VideoPlayerProps) {
     if (!vid) return
     const v = Number(e.target.value)
     vid.volume = v
+    vid.muted = v === 0
     setVolume(v)
     setIsMuted(v === 0)
     resetHideTimer()
@@ -158,6 +165,7 @@ export function VideoPlayer({ src, title, onClose }: VideoPlayerProps) {
         src={src}
         className="w-full h-full object-contain"
         playsInline
+        onError={() => setPlaybackError('Cannot load this video. Check your connection or download it again.')}
         onClick={togglePlay}
       />
 
@@ -172,10 +180,11 @@ export function VideoPlayer({ src, title, onClose }: VideoPlayerProps) {
         }}
       >
         {/* Top bar */}
-        <div className="flex items-center justify-between px-4 pt-4">
+        <div className="relative z-10 flex items-center justify-between px-4 pt-4">
           {onClose && (
             <button
               onClick={onClose}
+              aria-label="Close player"
               className="p-2 rounded-full bg-black/40 text-white hover:bg-black/60 transition-colors"
             >
               <svg
@@ -195,6 +204,7 @@ export function VideoPlayer({ src, title, onClose }: VideoPlayerProps) {
             <p className="flex-1 mx-3 text-sm font-medium text-white line-clamp-1">{title}</p>
           )}
           <select
+            aria-label="Playback speed"
             value={speed}
             onChange={handleSpeed}
             className="bg-black/40 text-white text-xs rounded px-2 py-1 border border-white/20 outline-none cursor-pointer"
@@ -209,6 +219,7 @@ export function VideoPlayer({ src, title, onClose }: VideoPlayerProps) {
 
         {/* Center play/pause */}
         <button
+          aria-label={isPlaying ? 'Pause' : 'Play'}
           onClick={togglePlay}
           className="absolute inset-0 flex items-center justify-center"
           style={{ pointerEvents: showControls ? 'auto' : 'none' }}
@@ -223,13 +234,15 @@ export function VideoPlayer({ src, title, onClose }: VideoPlayerProps) {
         </button>
 
         {/* Bottom controls */}
-        <div className="px-4 pb-4 flex flex-col gap-2">
+        <div className="relative z-10 px-4 pb-4 flex flex-col gap-2">
+          {playbackError && <p role="alert" className="text-xs text-red-400">{playbackError}</p>}
           {/* Seek bar */}
           <div className="flex items-center gap-2">
             <span className="text-xs text-white/80 tabular-nums w-10 shrink-0">
               {formatTime(currentTime)}
             </span>
             <input
+              aria-label="Playback position"
               type="range"
               min={0}
               max={duration || 100}
@@ -247,7 +260,7 @@ export function VideoPlayer({ src, title, onClose }: VideoPlayerProps) {
 
           {/* Volume + fullscreen */}
           <div className="flex items-center gap-3">
-            <button onClick={toggleMute} className="text-white/80 hover:text-white shrink-0">
+            <button aria-label={isMuted ? 'Unmute' : 'Mute'} onClick={toggleMute} className="text-white/80 hover:text-white shrink-0">
               {isMuted || volume === 0 ? (
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                   <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor" />
@@ -262,6 +275,7 @@ export function VideoPlayer({ src, title, onClose }: VideoPlayerProps) {
               )}
             </button>
             <input
+              aria-label="Volume"
               type="range"
               min={0}
               max={1}
@@ -271,7 +285,7 @@ export function VideoPlayer({ src, title, onClose }: VideoPlayerProps) {
               className="w-20"
             />
             <div className="flex-1" />
-            <button onClick={toggleFullscreen} className="text-white/80 hover:text-white shrink-0">
+            <button aria-label={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'} onClick={toggleFullscreen} className="text-white/80 hover:text-white shrink-0">
               {isFullscreen ? (
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                   <path d="M8 3v3a2 2 0 0 1-2 2H3M21 8h-3a2 2 0 0 1-2-2V3M3 16h3a2 2 0 0 1 2 2v3M16 21v-3a2 2 0 0 1 2-2h3" />

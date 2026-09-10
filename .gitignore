@@ -119,6 +119,10 @@ backend/.venv/
 backend/venv/
 backend/tmp_downloads/
 backend/*.log
+backend/logs/
+logs/
+repair-backup/
+backend/tests/__pycache__/
 
 # ========================
 # Node / Frontend

@@ -22,6 +22,7 @@ export interface HistoryItem {
   fileSize: number
   downloadDate: string
   originalUrl: string
+  localPath?: string
 }
 
 export type DownloadStatus = 'idle' | 'fetching-info' | 'downloading' | 'done' | 'error'

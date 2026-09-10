@@ -1,5 +1,7 @@
 import { useState, useCallback } from 'react'
+import { Capacitor } from '@capacitor/core'
 import { URLInput } from '../components/URLInput'
+import { ServerSettings } from '../components/ServerSettings'
 import { QualitySelector } from '../components/QualitySelector'
 import { ProgressBar } from '../components/ProgressBar'
 import { useVideoInfo } from '../hooks/useVideoInfo'
@@ -14,7 +16,7 @@ export function HomePage({ onDownloadComplete }: HomePageProps) {
   const [url, setUrl] = useState('')
   const [showSelector, setShowSelector] = useState(false)
   const { info, status, error, analyze, reset } = useVideoInfo()
-  const { state: dlState, download, reset: resetDl } = useDownload(onDownloadComplete)
+  const { state: dlState, error: dlError, download, reset: resetDl } = useDownload(onDownloadComplete)
 
   const handleAnalyze = useCallback(
     async (u: string) => {
@@ -48,7 +50,7 @@ export function HomePage({ onDownloadComplete }: HomePageProps) {
           status === 'fetching-info'
             ? 'Analyzing link…'
             : dlState === 'downloading'
-              ? 'Starting download…'
+              ? 'Downloading video…'
               : undefined
         }
       />
@@ -84,10 +86,12 @@ export function HomePage({ onDownloadComplete }: HomePageProps) {
           </p>
           <URLInput
             onAnalyze={handleAnalyze}
-            isLoading={status === 'fetching-info'}
+            isLoading={status === 'fetching-info' || dlState === 'downloading'}
             error={error}
           />
         </div>
+
+        <ServerSettings disabled={status === 'fetching-info' || dlState === 'downloading'} />
 
         {/* Success state */}
         {dlState === 'done' && (
@@ -105,7 +109,9 @@ export function HomePage({ onDownloadComplete }: HomePageProps) {
               <polyline points="20 6 9 17 4 12" />
             </svg>
             <p className="text-sm text-green-400 font-medium">
-              Download started — check your Downloads folder
+              {Capacitor.isNativePlatform()
+                ? 'Video saved — Files → On My iPhone → VidSave → VidSave'
+                : 'Video received — check your browser downloads'}
             </p>
           </div>
         )}
@@ -126,7 +132,7 @@ export function HomePage({ onDownloadComplete }: HomePageProps) {
               <line x1="15" y1="9" x2="9" y2="15" />
               <line x1="9" y1="9" x2="15" y2="15" />
             </svg>
-            <p className="text-sm text-red-400">Download failed. Please try again.</p>
+            <p role="alert" className="text-sm text-red-400">{dlError ?? 'Download failed. Please try again.'}</p>
           </div>
         )}
 
