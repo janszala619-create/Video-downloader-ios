@@ -37,7 +37,7 @@ export function QualitySelector({ info, onSelect, onClose }: QualitySelectorProp
   if (!info) return null
 
   return (
-    <div className="fixed inset-0 z-40 flex items-end">
+    <div className="fixed inset-0 z-[60] flex items-end">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
@@ -47,11 +47,15 @@ export function QualitySelector({ info, onSelect, onClose }: QualitySelectorProp
       {/* Panel */}
       <div
         ref={panelRef}
-        className="relative w-full max-w-lg mx-auto bg-card rounded-t-2xl border-t border-x border-white/[0.08] slide-up max-h-[85vh] flex flex-col"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Select video quality"
+        className="quality-sheet relative w-full max-w-lg mx-auto bg-card rounded-t-2xl border-t border-x border-white/[0.08] slide-up flex flex-col"
       >
         {/* Handle */}
-        <div className="flex justify-center pt-3 pb-2 shrink-0">
+        <div className="flex items-center justify-between px-4 pt-2 pb-2 shrink-0">
           <div className="w-10 h-1 rounded-full bg-white/20" />
+          <button onClick={onClose} aria-label="Close quality selection" className="min-h-11 px-3 text-sm text-secondary">Close</button>
         </div>
 
         {/* Video info header */}

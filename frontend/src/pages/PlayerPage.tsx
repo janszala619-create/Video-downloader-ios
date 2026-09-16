@@ -52,13 +52,13 @@ export function PlayerPage() {
   const handleClose = () => navigate(-1)
 
   return (
-    <div className="flex flex-col min-h-screen bg-black">
+    <div className="app-screen bg-black pb-safe">
       {/* Back button */}
-      <div className="flex items-center gap-3 px-4 pt-safe pt-4 pb-2 bg-black">
+      <div className="player-header flex items-center gap-3 bg-black">
         <button
           onClick={handleClose}
           aria-label="Back"
-          className="p-2 rounded-full bg-white/[0.08] text-white hover:bg-white/[0.12] transition-colors"
+          className="min-h-11 min-w-11 flex items-center justify-center rounded-full bg-white/[0.08] text-white hover:bg-white/[0.12] transition-colors"
         >
           <svg
             width="18"

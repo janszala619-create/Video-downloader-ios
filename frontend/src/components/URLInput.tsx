@@ -40,7 +40,7 @@ export function URLInput({ onAnalyze, isLoading, error }: URLInputProps) {
           placeholder="Paste video URL here…"
           rows={2}
           inputMode="url"
-          className={`w-full resize-none rounded-xl bg-card border px-4 py-4 pr-24 text-sm text-white placeholder-secondary outline-none transition-all duration-150 focus:border-accent focus:shadow-glow ${
+          className={`w-full min-w-0 resize-none rounded-xl bg-card border px-4 py-4 pr-24 text-base text-white placeholder-secondary outline-none transition-all duration-150 focus:border-accent focus:shadow-glow ${
             error ? 'border-red-500' : 'border-white/[0.08]'
           }`}
           style={{ lineHeight: '1.5' }}
@@ -48,7 +48,7 @@ export function URLInput({ onAnalyze, isLoading, error }: URLInputProps) {
         <button
           type="button"
           onClick={handlePaste}
-          className="absolute right-3 top-3 rounded-lg bg-white/[0.06] px-3 py-1.5 text-xs font-medium text-secondary transition-colors hover:text-white hover:bg-white/[0.1]"
+          className="absolute right-3 top-3 min-h-11 rounded-lg bg-white/[0.06] px-3 py-1.5 text-sm font-medium text-secondary transition-colors hover:text-white hover:bg-white/[0.1]"
         >
           Paste
         </button>

@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react'
 import { Capacitor } from '@capacitor/core'
 import { URLInput } from '../components/URLInput'
 import { ServerSettings } from '../components/ServerSettings'
+import { LocalVideoActions } from '../components/LocalVideoActions'
 import { QualitySelector } from '../components/QualitySelector'
 import { ProgressBar } from '../components/ProgressBar'
 import { useVideoInfo } from '../hooks/useVideoInfo'
@@ -16,7 +17,7 @@ export function HomePage({ onDownloadComplete }: HomePageProps) {
   const [url, setUrl] = useState('')
   const [showSelector, setShowSelector] = useState(false)
   const { info, status, error, analyze, reset } = useVideoInfo()
-  const { state: dlState, error: dlError, download, reset: resetDl } = useDownload(onDownloadComplete)
+  const { state: dlState, error: dlError, completedItem, download, reset: resetDl } = useDownload(onDownloadComplete)
 
   const handleAnalyze = useCallback(
     async (u: string) => {
@@ -43,7 +44,7 @@ export function HomePage({ onDownloadComplete }: HomePageProps) {
   }, [reset])
 
   return (
-    <div className="flex flex-col min-h-screen bg-bg">
+    <div className="app-screen bg-bg">
       <ProgressBar
         isVisible={status === 'fetching-info' || dlState === 'downloading'}
         label={
@@ -55,7 +56,7 @@ export function HomePage({ onDownloadComplete }: HomePageProps) {
         }
       />
 
-      <div className="flex-1 px-4 pt-14 pb-28">
+      <div className="page-content">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-1">
@@ -115,6 +116,8 @@ export function HomePage({ onDownloadComplete }: HomePageProps) {
             </p>
           </div>
         )}
+
+        {completedItem?.localPath && <LocalVideoActions key={completedItem.id} path={completedItem.localPath} />}
 
         {/* Error state */}
         {dlState === 'error' && (

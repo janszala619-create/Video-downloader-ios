@@ -1,5 +1,8 @@
 import { useNavigate } from 'react-router-dom'
 import { DownloadItem } from '../components/DownloadItem'
+import { useState } from 'react'
+import { LocalVideoActions } from '../components/LocalVideoActions'
+import { playLocalVideo, supportsNativeMedia } from '../services/media'
 import type { HistoryItem } from '../types'
 
 interface HistoryPageProps {
@@ -10,16 +13,23 @@ interface HistoryPageProps {
 
 export function HistoryPage({ items, onDelete, onClear }: HistoryPageProps) {
   const navigate = useNavigate()
+  const [error, setError] = useState<string | null>(null)
 
-  const handlePlay = (item: HistoryItem) => {
+  const handlePlay = async (item: HistoryItem) => {
+    setError(null)
+    if (item.localPath && supportsNativeMedia()) {
+      try { await playLocalVideo(item.localPath) }
+      catch (error) { setError(error instanceof Error ? error.message : 'Video konnte nicht geöffnet werden.') }
+      return
+    }
     navigate(
       `/player?url=${encodeURIComponent(item.originalUrl)}&format_id=${encodeURIComponent(item.format_id)}&title=${encodeURIComponent(item.title)}${item.localPath ? `&local=${encodeURIComponent(item.localPath)}` : ''}`,
     )
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-bg">
-      <div className="flex-1 px-4 pt-14 pb-28">
+    <div className="app-screen bg-bg">
+      <div className="page-content">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-xl font-bold text-white">Downloads</h1>
@@ -37,6 +47,7 @@ export function HistoryPage({ items, onDelete, onClear }: HistoryPageProps) {
           )}
         </div>
 
+        {error && <p role="alert" className="text-sm text-red-400 mb-4">{error}</p>}
         {items.length === 0 ? (
           /* Empty state */
           <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
@@ -63,7 +74,10 @@ export function HistoryPage({ items, onDelete, onClear }: HistoryPageProps) {
         ) : (
           <div className="flex flex-col gap-3">
             {items.map(item => (
-              <DownloadItem key={item.id} item={item} onPlay={handlePlay} onDelete={onDelete} />
+              <div key={item.id} className="rounded-xl border border-white/[0.08] bg-card p-3">
+                <DownloadItem item={item} onPlay={handlePlay} onDelete={onDelete} />
+                {item.localPath && <LocalVideoActions path={item.localPath} />}
+              </div>
             ))}
           </div>
         )}

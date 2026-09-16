@@ -23,6 +23,8 @@ jobs:
   build-ios:
     name: iOS IPA bauen
     runs-on: macos-latest
+    env:
+      VIDSAVE_NATIVE_TESTS: '1'
 
     steps:
       # ── 1. Code holen ────────────────────────────────────────────────────
@@ -57,12 +59,32 @@ jobs:
 
       - name: Pod install
         working-directory: frontend/ios/App
-        run: pod install
+        run: |
+          ruby ../../scripts/add-ios-test-target.rb
+          pod install
 
       # ── 5. Capacitor synchronisieren ─────────────────────────────────────
       - name: Capacitor sync
         working-directory: frontend
         run: npx cap sync ios
+
+      - name: Native playback and Photos tests
+        run: |
+          set -euo pipefail
+          DEVICE=$(xcrun simctl create VidSaveTests com.apple.CoreSimulator.SimDeviceType.iPhone-16)
+          xcrun simctl boot "$DEVICE"
+          xcrun simctl bootstatus "$DEVICE" -b
+          xcodebuild build-for-testing -workspace frontend/ios/App/App.xcworkspace -scheme AppMediaTests -configuration Debug -destination "platform=iOS Simulator,id=$DEVICE" -derivedDataPath /tmp/vidsave-tests CODE_SIGNING_ALLOWED=NO -quiet
+          xcrun simctl install "$DEVICE" /tmp/vidsave-tests/Build/Products/Debug-iphonesimulator/App.app
+          xcrun simctl privacy "$DEVICE" grant photos-add de.vidsave.app
+          xcodebuild test-without-building -workspace frontend/ios/App/App.xcworkspace -scheme AppMediaTests -configuration Debug -destination "platform=iOS Simulator,id=$DEVICE" -derivedDataPath /tmp/vidsave-tests -resultBundlePath /tmp/VidSaveTests.xcresult -parallel-testing-enabled NO CODE_SIGNING_ALLOWED=NO -quiet
+
+      - name: Native test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: VidSave-native-tests-${{ github.run_number }}
+          path: /tmp/VidSaveTests.xcresult
 
       # ── 6. Xcode-Build (unsigned — kein Developer Account nötig) ─────────
       #   Die IPA kann mit AltStore oder Sideloadly auf das iPhone geladen werden

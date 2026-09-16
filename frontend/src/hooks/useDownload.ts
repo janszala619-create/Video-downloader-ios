@@ -7,6 +7,7 @@ type DownloadState = 'idle' | 'downloading' | 'done' | 'error'
 export function useDownload(onComplete: (item: HistoryItem) => void) {
   const [state, setState] = useState<DownloadState>('idle')
   const [error, setError] = useState<string | null>(null)
+  const [completedItem, setCompletedItem] = useState<HistoryItem | null>(null)
   const active = useRef(false)
 
   const download = useCallback(
@@ -15,6 +16,7 @@ export function useDownload(onComplete: (item: HistoryItem) => void) {
       active.current = true
       setState('downloading')
       setError(null)
+      setCompletedItem(null)
       try {
         const id = crypto.randomUUID()
         const title = info.title.replace(/[<>:"/\\|?*\u0000-\u001f]/g, '_').slice(0, 100) || 'video'
@@ -32,6 +34,7 @@ export function useDownload(onComplete: (item: HistoryItem) => void) {
           originalUrl,
         }
         onComplete(historyItem)
+        setCompletedItem(historyItem)
         setState('done')
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Download failed')
@@ -47,7 +50,8 @@ export function useDownload(onComplete: (item: HistoryItem) => void) {
     if (active.current) return
     setState('idle')
     setError(null)
+    setCompletedItem(null)
   }, [])
 
-  return { state, error, download, reset }
+  return { state, error, completedItem, download, reset }
 }

@@ -19,6 +19,11 @@ end
 target 'App' do
   capacitor_pods
   # Add your Pods here
+  if ENV['VIDSAVE_NATIVE_TESTS'] == '1'
+    target 'AppTests' do
+      inherit! :search_paths
+    end
+  end
 end
 
 post_install do |installer|

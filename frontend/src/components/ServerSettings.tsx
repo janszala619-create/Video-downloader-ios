@@ -29,7 +29,7 @@ export function ServerSettings({ disabled }: { disabled: boolean }) {
         <input id="server-address" type="url" required value={address}
           disabled={disabled || checking} onChange={event => setAddress(event.target.value)}
           placeholder="http://100.80.105.62:8765"
-          className="rounded-lg bg-bg border border-white/20 p-3 text-sm text-white" />
+          className="min-w-0 w-full rounded-lg bg-bg border border-white/20 p-3 text-base text-white" />
         <p className="text-xs text-secondary">For a Tailscale address, connect Tailscale on your iPhone and keep the server running.</p>
         <button disabled={disabled || checking} className="rounded-lg bg-accent p-3 text-sm text-white disabled:opacity-50">
           Save and test connection

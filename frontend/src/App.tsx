@@ -10,7 +10,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <div className="min-h-screen bg-bg font-sans">
+      <div className="app-screen bg-bg font-sans">
         <Routes>
           <Route path="/" element={<HomePage onDownloadComplete={add} />} />
           <Route

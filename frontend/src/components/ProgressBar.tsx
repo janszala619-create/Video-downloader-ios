@@ -7,7 +7,7 @@ export function ProgressBar({ isVisible, label }: ProgressBarProps) {
   if (!isVisible) return null
 
   return (
-    <div className="fixed inset-x-0 top-0 z-50">
+    <div role="status" className="fixed inset-x-0 z-50" style={{ top: 'env(safe-area-inset-top, 0px)' }}>
       <div className="h-[3px] w-full overflow-hidden bg-card">
         <div className="h-full shimmer" />
       </div>

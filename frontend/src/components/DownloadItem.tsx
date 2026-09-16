@@ -23,7 +23,7 @@ function formatDate(iso: string): string {
 
 export function DownloadItem({ item, onPlay, onDelete }: DownloadItemProps) {
   return (
-    <div className="flex items-center gap-3 px-4 py-3 bg-card rounded-xl border border-white/[0.08] fade-in">
+    <div className="flex items-center gap-3 min-w-0 fade-in">
       {/* Thumbnail */}
       <button
         onClick={() => onPlay(item)}
@@ -79,7 +79,7 @@ export function DownloadItem({ item, onPlay, onDelete }: DownloadItemProps) {
           e.stopPropagation()
           onDelete(item.id)
         }}
-        className="shrink-0 p-2 rounded-lg text-secondary hover:text-red-400 hover:bg-red-500/10 transition-colors"
+        className="shrink-0 min-h-11 min-w-11 flex items-center justify-center rounded-lg text-secondary hover:text-red-400 hover:bg-red-500/10 transition-colors"
         aria-label="Delete"
       >
         <svg
