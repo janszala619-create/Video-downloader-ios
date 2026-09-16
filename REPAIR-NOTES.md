@@ -1,5 +1,13 @@
 # Download repair
 
+## 2026-09-16: iPhone ATS connection failure
+
+The iPhone screenshots show an ATS rejection when contacting `http://100.80.105.62:8765`, before a video URL reaches the backend. `NSAllowsLocalNetworking` alone was insufficient for this numeric address. The iOS plist now includes an `NSExceptionDomains` entry for exactly `100.80.105.62` with `NSExceptionAllowsInsecureHTTPLoads`. Global ATS bypasses remain disabled. This exception covers the native HTTP and filesystem-download requests.
+
+The new `frontend/scripts/check-ios-transport.py` check rejects the old configuration and is also run against the compiled app plist in CI before packaging the IPA. Installing the updated IPA is required; changing the server URL or restarting the backend does not update an installed app's ATS policy. The actual connection on an iPhone must still be verified after installation.
+
+Reference: [Apple's NSExceptionDomains documentation](https://developer.apple.com/documentation/BundleResources/Information-Property-List/NSAppTransportSecurity/NSExceptionDomains) supports individual IP-address exceptions on iOS 17 and later.
+
 The application uses the React/Capacitor frontend in `frontend` and the FastAPI/yt-dlp server in `backend`.
 
 ## Changes

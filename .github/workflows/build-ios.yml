@@ -89,6 +89,8 @@ jobs:
                   | head -1)
           echo "Gefundene .app: $APP"
 
+          python3 frontend/scripts/check-ios-transport.py "$APP/Info.plist"
+
           mkdir -p /tmp/ipa/Payload
           cp -r "$APP" /tmp/ipa/Payload/
           cd /tmp/ipa
