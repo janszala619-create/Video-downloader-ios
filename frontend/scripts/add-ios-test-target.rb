@@ -10,6 +10,7 @@ tests.source_build_phase.add_file_reference(group.new_file('NativeMediaTests.swi
 tests.resources_build_phase.add_file_reference(group.new_file('Fixtures/sample.mp4'))
 tests.build_configurations.each do |config|
   config.build_settings['SWIFT_VERSION'] = '5.0'
+  config.build_settings['PRODUCT_NAME'] = '$(TARGET_NAME)'
   config.build_settings['GENERATE_INFOPLIST_FILE'] = 'YES'
   config.build_settings['PRODUCT_BUNDLE_IDENTIFIER'] = 'de.vidsave.app.tests'
   config.build_settings['TEST_HOST'] = '$(BUILT_PRODUCTS_DIR)/App.app/App'

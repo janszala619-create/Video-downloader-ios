@@ -8,6 +8,10 @@ on:
         description: 'Backend-URL (z.B. https://mein-backend.railway.app)'
         required: false
         default: ''
+      skip_tests:
+        description: 'Nur IPA bauen, ohne Tests auszuführen'
+        type: boolean
+        default: false
 
   # Oder automatisch bei Push auf diesen Branch
   push:
@@ -24,7 +28,7 @@ jobs:
     name: iOS IPA bauen
     runs-on: macos-latest
     env:
-      VIDSAVE_NATIVE_TESTS: '1'
+      VIDSAVE_NATIVE_TESTS: ${{ inputs.skip_tests && '0' || '1' }}
 
     steps:
       # ── 1. Code holen ────────────────────────────────────────────────────
@@ -50,7 +54,7 @@ jobs:
         env:
           VITE_API_BASE_URL: ${{ inputs.api_url || secrets.VITE_API_BASE_URL }}
         run: |
-          npm test
+          if [ "$VIDSAVE_NATIVE_TESTS" = "1" ]; then npm test; fi
           npm run build
 
       # ── 4. CocoaPods ─────────────────────────────────────────────────────
@@ -60,7 +64,7 @@ jobs:
       - name: Pod install
         working-directory: frontend/ios/App
         run: |
-          ruby ../../scripts/add-ios-test-target.rb
+          if [ "$VIDSAVE_NATIVE_TESTS" = "1" ]; then ruby ../../scripts/add-ios-test-target.rb; fi
           pod install
 
       # ── 5. Capacitor synchronisieren ─────────────────────────────────────
@@ -69,6 +73,7 @@ jobs:
         run: npx cap sync ios
 
       - name: Native playback and Photos tests
+        if: ${{ !inputs.skip_tests }}
         run: |
           set -euo pipefail
           DEVICE=$(xcrun simctl create VidSaveTests com.apple.CoreSimulator.SimDeviceType.iPhone-16)
@@ -80,7 +85,7 @@ jobs:
           xcodebuild test-without-building -workspace frontend/ios/App/App.xcworkspace -scheme AppMediaTests -configuration Debug -destination "platform=iOS Simulator,id=$DEVICE" -derivedDataPath /tmp/vidsave-tests -resultBundlePath /tmp/VidSaveTests.xcresult -parallel-testing-enabled NO CODE_SIGNING_ALLOWED=NO -quiet
 
       - name: Native test results
-        if: always()
+        if: ${{ always() && !inputs.skip_tests }}
         uses: actions/upload-artifact@v4
         with:
           name: VidSave-native-tests-${{ github.run_number }}
